@@ -21,12 +21,12 @@ enum Tabs {
 
 interface IOptions {
     baseUrl: string;
-    slug: (doc: any) => string;
-    content?: (doc: any) => string;
-    title?: (doc: any) => string;
-    description?: (doc: any) => string;
-    locale?: (doc: any) => string;
-    contentSelector?: string;
+    slug: (doc: any) => string | Promise<string>;
+    content?: (doc: any) => string | Promise<string>;
+    title?: (doc: any) => string | Promise<string>;
+    description?: (doc: any) => string | Promise<string>;
+    locale?: (doc: any) => string | Promise<string>;
+    contentSelector?: string | Promise<string>;
 }
 
 interface IProps {
@@ -215,21 +215,21 @@ class InputContainer extends React.PureComponent<IProps, IState> {
         this.setState({
             auditOngoing: true,
         });
-        return new Promise((res, rej) => {
+        return new Promise(async (res, rej) => {
             const { type, document } = this.props;
             const { options } = type;
             const baseUrl = options.baseUrl.replace(/\/+$/, '');
-            const slug = options.slug(document);
+            const slug = await options.slug(document);
             const url = baseUrl + '/' + slug;
             axios.get(url).then(response => {
                 const content = response.data;
                 const parser = new DOMParser();
                 const doc = parser.parseFromString(content, 'text/html');
                 Array.from(doc.body.querySelectorAll('script')).forEach(s => s.remove());
-                let langCulture = options.locale ? options.locale(document) : (doc.documentElement.lang || 'en');
+                let langCulture = options.locale ? await options.locale(document) : (doc.documentElement.lang || 'en');
                 if (!langCulture.includes('-')) langCulture = langCultureMap[langCulture] || 'en-US';
-                const title = options.title ? options.title(document) : doc.title;
-                const description  = options.description ? options.description(document) : (doc.querySelector('meta[name="description"]') as HTMLMetaElement).content;
+                const title = options.title ? await options.title(document) : doc.title;
+                const description  = options.description ? await options.description(document) : (doc.querySelector('meta[name="description"]') as HTMLMetaElement).content;
                 const paperOptions: IYoastPaperOptions = {
                     keyword: this.value.focus_keyword || '',
                     url: slug,
@@ -239,8 +239,8 @@ class InputContainer extends React.PureComponent<IProps, IState> {
                     description,
                     locale: langCulture.replace('-', '_'),
                 };
-                const contentBySelector = (options.contentSelector ? doc.querySelector(options.contentSelector) : doc.body);
-                const rawContent = options.content ? options.content(document) : (contentBySelector || doc.body).innerHTML;
+                const contentBySelector = (options.contentSelector ? await doc.querySelector(options.contentSelector) : doc.body);
+                const rawContent = options.content ? await options.content(document) : (contentBySelector || doc.body).innerHTML;
                 const paper = new this.YoastSEO.Paper(rawContent, paperOptions);
                 const researcher = new this.YoastSEO.Researcher(paper);
                 this.setState({
