@@ -221,7 +221,7 @@ class InputContainer extends React.PureComponent<IProps, IState> {
             const baseUrl = options.baseUrl.replace(/\/+$/, '');
             const slug = await options.slug(document);
             const url = baseUrl + '/' + slug;
-            axios.get(url).then(response => {
+            axios.get(url).then(async (response) => {
                 const content = response.data;
                 const parser = new DOMParser();
                 const doc = parser.parseFromString(content, 'text/html');
@@ -239,7 +239,7 @@ class InputContainer extends React.PureComponent<IProps, IState> {
                     description,
                     locale: langCulture.replace('-', '_'),
                 };
-                const contentBySelector = (options.contentSelector ? await doc.querySelector(options.contentSelector) : doc.body);
+                const contentBySelector = (options.contentSelector ? doc.querySelector(await options.contentSelector) : doc.body);
                 const rawContent = options.content ? await options.content(document) : (contentBySelector || doc.body).innerHTML;
                 const paper = new this.YoastSEO.Paper(rawContent, paperOptions);
                 const researcher = new this.YoastSEO.Researcher(paper);
